@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Шахматы Королев">
+<meta name="theme-color" content="#170a2b">
+<meta name="format-detection" content="telephone=no">
+<title>Шахматы Королев</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="bg"><div class="orb sun"></div><div class="orb moon"></div><div class="stars"></div></div>
+
+<!-- Стартовый экран -->
+<section id="start" class="screen active">
+  <div class="start-inner">
+    <div class="logo-crown">♛</div>
+    <h1 class="title">Шахматы<br><span>Королев</span></h1>
+    <p class="subtitle">Свет ☀ против Тьмы ☾</p>
+    <div class="hero">
+      <div class="hero-glow l"></div><div class="hero-glow d"></div>
+      <div class="hero-piece hp1" id="heroL"></div>
+      <div class="hero-piece hp2" id="heroD"></div>
+      <div class="hero-piece hp3" id="heroL2"></div>
+      <div class="hero-piece hp4" id="heroD2"></div>
+    </div>
+    <div class="start-btns">
+      <button class="btn gold hidden" id="btnContinue">▶ Продолжить партию</button>
+      <button class="btn primary" id="btnNew">♛ Новая игра</button>
+      <button class="btn glass" id="btnSettingsStart">⚙ Настройки</button>
+    </div>
+  </div>
+</section>
+
+<!-- Игровой экран -->
+<section id="game" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" id="btnMenu" aria-label="Меню">☰</button>
+    <div class="top-title"><b>Шахматы Королев</b><small id="modeLabel"></small></div>
+    <button class="icon-btn" id="btnSound" aria-label="Звук">🔊</button>
+  </header>
+  <div class="panel" id="panelTop">
+    <div class="avatar"></div>
+    <div class="pinfo"><div class="pname"></div><div class="tray"></div></div>
+    <div class="pstate"></div>
+    <div class="clock hidden">5:00</div>
+  </div>
+  <div class="board-wrap">
+    <div id="board" class="theme-marble">
+      <div class="layer squares"></div>
+      <div class="layer marks"></div>
+      <div class="layer pieces"></div>
+      <svg class="layer arrows" viewBox="0 0 8 8" preserveAspectRatio="none"></svg>
+      <div class="layer fx"></div>
+    </div>
+    <div id="promo" class="hidden"><div class="promo-card"><div class="promo-title">Превращение пешки</div><div class="promo-opts"></div></div></div>
+  </div>
+  <div class="panel" id="panelBottom">
+    <div class="avatar"></div>
+    <div class="pinfo"><div class="pname"></div><div class="tray"></div></div>
+    <div class="pstate"></div>
+    <div class="clock hidden">5:00</div>
+  </div>
+  <div id="history" class="history"><span class="empty">Ходов пока нет — начинайте!</span></div>
+  <nav class="controls">
+    <button id="btnUndo"><i>↶</i><span>Отменить</span></button>
+    <button id="btnHint"><i>💡</i><span>Подсказка</span></button>
+    <button id="btnFlip"><i>⇅</i><span>Перевернуть</span></button>
+    <button id="btnSettings"><i>⚙</i><span>Настройки</span></button>
+  </nav>
+</section>
+
+<div id="modal" class="hidden"><div class="sheet" id="sheet"></div></div>
+<canvas id="confetti"></canvas>
+<div id="toast" class="hidden"></div>
+
+<script src="pieces.js"></script>
+<script src="chess.js"></script>
+<script src="engine.js"></script>
+<script src="audio.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
