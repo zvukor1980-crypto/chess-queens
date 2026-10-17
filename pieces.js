@@ -209,13 +209,10 @@
   };
 
   const cache = {};
-  function svg(type, color) { // type: 'K','Q','B','N','R','P'; color: 'w'|'b'
-    const k = type + color;
-    if (!cache[k]) {
-      const c = PAL[color === 'w' ? 'L' : 'D'];
-      cache[k] = `<svg class="pc pc-${type} pc-${color}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${DRAW[type](c)}</svg>`;
-    }
-    return cache[k];
-  }
-  root.CQPieces = { svg, DEFS, NAMES: { K: 'Королева-регент', Q: 'Королева-воительница', B: 'Чародейка', N: 'Всадница', R: 'Стражница', P: 'Лучница' } };
+  function svg(type,color){
+ const k=type+color;if(cache[k])return cache[k];const light=color==='w',edge=light?'#667b87':'#092634',top=light?'#fff8e7':'#9bd7db',mid=light?'#ead4ac':'#287b91',low=light?'#aa8c61':'#143e5d',gem=light?'#be8b43':'#a6f5eb';
+ const head={K:'<path d="M44 13h12v9h8v9H36v-9h8z"/><path d="M32 37q18-10 36 0l-6 18H38z"/>',Q:'<path d="M27 28l10 9 13-18 13 18 10-9-8 27H35z"/><circle cx="27" cy="25" r="4"/><circle cx="50" cy="15" r="4"/><circle cx="73" cy="25" r="4"/>',B:'<path d="M50 17q-25 20-14 32l14 8 14-8q11-12-14-32z"/><path d="M53 27l-8 13" fill="none" stroke="'+edge+'" stroke-width="5"/>',N:'<path d="M31 60l5-21-7-8 13-7 4-11 13 7 13 20-4 10-12-8-1 16z"/><path d="M42 28l-4 17" fill="none" stroke="'+edge+'" stroke-width="3"/><circle cx="57" cy="30" r="2.5" fill="'+edge+'"/>',R:'<path d="M30 22h10v10h7V22h7v10h7V22h10v21l-9 10H38l-8-10z"/>',P:'<circle cx="50" cy="29" r="14"/><path d="M37 46h26l-5 12H42z"/>'}[type]||'';
+ return cache[k]='<svg class="pc pc-'+type+' pc-'+color+'" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="gem-'+k+'" x1="0" x2="1" y2="1"><stop stop-color="'+top+'"/><stop offset=".45" stop-color="'+mid+'"/><stop offset="1" stop-color="'+low+'"/></linearGradient></defs><ellipse cx="51" cy="87" rx="30" ry="7" fill="#071a3440"/><g fill="url(#gem-'+k+')" stroke="'+edge+'" stroke-width="2" stroke-linejoin="round">'+head+'<path d="M39 54h22l-4 12 10 13H33l10-13z"/><path d="M30 76h40l5 10H25z"/><rect x="25" y="85" width="50" height="5" rx="2"/></g><path d="M43 58h14l-7 8z" fill="'+gem+'"/><path d="M34 81h30" stroke="'+top+'" stroke-width="2" opacity=".6"/></svg>';
+}
+  root.CQPieces = { svg, DEFS, NAMES: { K: 'Король', Q: 'Ферзь', B: 'Слон', N: 'Конь', R: 'Ладья', P: 'Пешка' } };
 })(window);
