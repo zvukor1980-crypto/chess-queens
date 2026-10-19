@@ -5,15 +5,19 @@
   const C = window.Chess, A = window.CQAudio, PC = window.CQPieces;
   const LS_SET = 'cq.settings.v1', LS_SAVE = 'cq.save.v1';
   const LEVELS = { easy: 'Лёгкий', medium: 'Средний', hard: 'Сложный' };
-  const THEMES = [['marble', 'Мрамор'], ['wood', 'Дерево'], ['neon', 'Неон'], ['gold', 'Золото']];
+  const THEMES = [['fairy', 'Сказка'], ['candy', 'Карамель'], ['marble', 'Мрамор'], ['wood', 'Дерево'], ['neon', 'Неон'], ['gold', 'Золото']];
   const SIDE = ['Свет ☀', 'Тьма ☾'];
   const LETTER = ' PNBRQK';
 
   const load = k => { try { return JSON.parse(localStorage.getItem(k)) || null; } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* приватный режим */ } };
 
-  const settings = Object.assign({ sound: true, hints: true, anim: true, theme: 'marble', autoFlip: false,
+  const settings = Object.assign({ sound: true, hints: true, anim: true, theme: 'fairy', autoFlip: false, pieces: 'hero',
     last: { mode: 'ai', color: 'w', level: 'medium', timer: 0 } }, load(LS_SET) || {});
+  // v2: один раз включаем новое сказочное оформление (его можно вернуть в настройках)
+  if (!settings.v2) { settings.v2 = 1; settings.theme = 'fairy'; settings.pieces = 'hero'; }
+  if (!['hero', 'classic'].includes(settings.pieces)) settings.pieces = 'hero';
+  PC.style = settings.pieces;
   const saveSettings = () => store(LS_SET, settings);
   A.enabled = settings.sound;
 
@@ -40,6 +44,7 @@
   }
   $('#heroL').innerHTML = PC.svg('K', 'w'); $('#heroD').innerHTML = PC.svg('Q', 'b');
   $('#heroL2').innerHTML = PC.svg('N', 'w'); $('#heroD2').innerHTML = PC.svg('B', 'b');
+  if (!['fairy', 'candy', 'marble', 'wood', 'neon', 'gold'].includes(settings.theme)) settings.theme = 'fairy';
   ['#heroL', '#heroD', '#heroL2', '#heroD2'].forEach((s, i) => $(s).style.setProperty('--d', (-i * 0.9) + 's'));
 
   function applySettings() {
@@ -128,6 +133,7 @@
       el.querySelector('.avatar').innerHTML = PC.svg('K', side ? 'b' : 'w');
       let name = SIDE[side];
       if (G && G.mode === 'ai') name = side === G.human ? 'Вы · ' + SIDE[side] : 'Компьютер · ' + LEVELS[G.level];
+      if (G && G.mode === 'puzzle') name = side === G.human ? 'Вы · ' + SIDE[side] : SIDE[side];
       el.querySelector('.pname').textContent = name;
       let tray = '';
       for (const t of [5, 4, 3, 2, 1]) {
@@ -175,7 +181,7 @@
   }
   function renderMode() {
     if (!G) return;
-    let t = G.mode === 'ai' ? 'Против компьютера · ' + LEVELS[G.level] : 'Вдвоём на одном телефоне';
+    let t = G.mode === 'puzzle' ? '🧩 Задача дня · мат в 1 ход' : G.mode === 'ai' ? 'Против компьютера · ' + LEVELS[G.level] : 'Вдвоём на одном телефоне';
     if (G.timer) t += ' · ' + G.timer + ' мин';
     $('#modeLabel').textContent = t;
   }
@@ -183,7 +189,7 @@
     applySettings(); renderSquares(); renderPieces(); renderMarks(); renderPanels(); renderHistory(); renderMode(); updateButtons();
   }
   function updateButtons() {
-    $('#btnUndo').disabled = !G || !chess.moveList.length;
+    $('#btnUndo').disabled = !G || !chess.moveList.length || G.mode === 'puzzle';
     $('#btnHint').disabled = !G || !!G.over;
   }
 
@@ -317,14 +323,15 @@
     modal.dataset.dismiss = '';
     openModal(`<h2>Настройки</h2>
       ${toggleRow('sound', '🔊 Звук')}${toggleRow('hints', '• Показывать возможные ходы')}${toggleRow('anim', '✨ Анимация фигур')}${toggleRow('autoFlip', '⇅ Авто-поворот доски (вдвоём)')}
-      <div class="field" style="margin-top:14px"><label>Тема доски</label>${themeHtml(settings.theme)}</div>
+      <div class="field" style="margin-top:14px"><label>Фигуры</label>${segHtml('pieces', [['hero', '👸 Героини'], ['classic', '♞ Классика']], settings.pieces)}</div>
+      <div class="field"><label>Тема доски</label>${themeHtml(settings.theme)}</div>
       <div class="actions"><button class="btn primary" id="setDone">Готово</button></div>`);
     sheet.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', () => {
       const k = t.dataset.key; settings[k] = !settings[k]; t.classList.toggle('on', settings[k]); saveSettings(); applySettings();
       if (k === 'sound' && settings.sound) { A.unlock(); A.play('select'); }
       if (G) renderMarks();
     }));
-    wireSegs();
+    wireSegs((n, v) => { if (n === 'pieces') { settings.pieces = v; PC.style = v; saveSettings(); renderHeroes(); if (G) { renderPieces(); renderPanels(); } } });
     $('#setDone').onclick = closeModal;
   }
   function openMenu() {
@@ -368,7 +375,7 @@
     showScreen('game'); renderAll();
     maybeEngine();
   }
-  function saveGame() { if (G) store(LS_SAVE, Object.assign({}, G, { flipped })); }
+  function saveGame() { if (G && G.mode !== 'puzzle') store(LS_SAVE, Object.assign({}, G, { flipped })); }
 
   function deselect() {
     if (selected >= 0) { const el = pieceEls.get(selected); if (el) el.classList.remove('lift'); }
@@ -376,7 +383,7 @@
   }
   function onTap(sq) {
     if (!G || G.over || thinking || promoMoves || sq < 0) return;
-    if (G.mode === 'ai' && chess.turn !== G.human) return;
+    if ((G.mode === 'ai' || G.mode === 'puzzle') && chess.turn !== G.human) return;
     A.unlock();
     const p = chess.board[sq];
     if (selected >= 0) {
@@ -420,6 +427,8 @@
       if (st.check) setTimeout(() => A.play('check'), 140);
     } else A.play(m.captured ? 'capture' : 'move');
     renderMarks(); renderPanels(); renderHistory(); updateButtons();
+    if (settings.anim) setTimeout(() => sparks(m.to, (m.piece >> 3) ? '#d8b4fe' : '#fff1a8', 6), 280);
+    if (G.mode === 'puzzle') { puzzleAfterMove(st); return; }
     if (st.over) finishGame(st);
     else {
       saveGame();
@@ -432,7 +441,7 @@
     repetition: 'Троекратное повторение позиции', time: 'Время вышло', resign: 'Соперник сдался', timeDraw: 'Время вышло, но мат поставить нечем' };
   function finishGame(st) {
     G.over = { result: st.result, reason: st.reason };
-    thinking = false; deselect(); saveGame();
+    thinking = false; deselect(); saveGame(); const rec = recordResult(st);
     renderMarks(); renderPanels(); updateButtons();
     const humanWon = G.mode === 'ai' && st.result !== 'd' && ((st.result === 'w') === (G.human === 0));
     const humanLost = G.mode === 'ai' && st.result !== 'd' && !humanWon;
@@ -453,7 +462,9 @@
     const pcs = st.result === 'd' ? PC.svg('K', 'w') + '</div><div>' + PC.svg('K', 'b') : PC.svg('K', wc) + '</div><div>' + PC.svg('Q', wc);
     setTimeout(() => {
       modal.dataset.dismiss = '';
-      openModal(`<div class="result-icon">${icon}</div><h2 id="resultTitle">${title}</h2><p class="result-sub">${sub}</p>
+      const extra = rec === 'w' ? `<p class="result-sub v2win">👑 +1 корона · 🔥 серия побед: <b>${stats.streak}</b></p>` : rec === 'l' ? '<p class="result-sub">Серия прервана — реванш?</p>' : '';
+      if (rec === 'w') royalBurst();
+      openModal(`<div class="result-icon">${icon}</div><h2 id="resultTitle">${title}</h2><p class="result-sub">${sub}</p>${extra}
         <div class="result-pieces anim"><div>${pcs}</div></div>
         <div class="actions"><button class="btn gold" id="resAgain">⟳ Реванш</button><button class="btn primary" id="resNew">♛ Новая игра</button><button class="btn glass small" id="resView">Посмотреть доску</button></div>`, true);
       $('#resAgain').onclick = () => { closeModal(); startGame({ mode: G.mode, color: G.mode === 'ai' ? (G.human ? 'w' : 'b') : 'w', level: G.level, timer: G.timer }); };
@@ -505,6 +516,7 @@
   }
   function askHint() {
     if (!G || G.over || thinking) return;
+    if (G.mode === 'puzzle') { G.tries++; puzzleHint(); return; }
     if (G.mode === 'ai' && chess.turn !== G.human) return;
     const id = ++reqId, moves = G.moves.slice();
     toast('Королева размышляет… 💭');
@@ -519,6 +531,7 @@
   }
   function undo() {
     if (!G || !chess.moveList.length) return;
+    if (G.mode === 'puzzle') return;
     if (G.mode === 'ai') {
       const humanMoves = G.human === 0 ? Math.ceil(G.moves.length / 2) : Math.floor(G.moves.length / 2);
       if (!humanMoves) { toast('Нечего отменять'); return; }
@@ -549,6 +562,142 @@
     if ((saveTick += dt) > 2000) { saveTick = 0; saveGame(); }
   }, 200);
 
+
+  // ================= v2: сказочный режим =================
+  const LS_STATS = 'cq.stats.v1';
+  const PUZZLES = ["6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1","1k6/ppp5/8/8/8/8/8/1K5R w - - 0 1","6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1","kr6/pp6/8/1N6/8/8/8/1K6 w - - 0 1","r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 1","rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 1","k7/7R/8/8/8/8/8/6RK w - - 0 1","7k/R7/8/8/8/8/8/KR6 w - - 0 1","r5k1/8/8/8/8/8/5PPP/6K1 b - - 0 1","1k5r/8/8/8/8/8/PPP5/1K6 b - - 0 1","7k/8/5N2/8/8/8/7R/6K1 w - - 0 1","k7/8/2N5/8/8/8/R7/1K6 w - - 0 1","7k/8/6K1/8/8/8/8/Q7 w - - 0 1","k7/8/1K6/8/8/8/8/7Q w - - 0 1","4k3/R7/4K3/8/8/8/8/8 w - - 0 1","3k4/7R/3K4/8/8/8/8/8 w - - 0 1","8/8/8/8/8/5k2/4q3/6K1 b - - 0 1","8/8/8/8/8/2k5/3q4/1K6 b - - 0 1"];
+  const stats = (() => {
+    const d = { games: 0, w: { easy: 0, medium: 0, hard: 0 }, l: { easy: 0, medium: 0, hard: 0 }, d: 0, streak: 0, best: 0, pz: { last: '', streak: 0, solved: 0, best: 0, lastDone: '' } };
+    const s = load(LS_STATS) || {};
+    const o = Object.assign({}, d, s); o.w = Object.assign({}, d.w, s.w); o.l = Object.assign({}, d.l, s.l); o.pz = Object.assign({}, d.pz, s.pz);
+    return o;
+  })();
+  const saveStats = () => store(LS_STATS, stats);
+  const today = (dt = new Date()) => dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+  function dayIndex() { const t = today(); let h = 2166136261; for (const ch of t) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return (h >>> 0) % PUZZLES.length; }
+  function recordResult(st) {
+    if (!G || G.mode !== 'ai' || G.recorded) return null;
+    G.recorded = true; stats.games++;
+    let out = 'd';
+    if (st.result === 'd') { stats.d++; }
+    else if ((st.result === 'w') === (G.human === 0)) { stats.w[G.level]++; stats.streak++; stats.best = Math.max(stats.best, stats.streak); out = 'w'; }
+    else { stats.l[G.level]++; stats.streak = 0; out = 'l'; }
+    saveStats(); refreshHall(); return out;
+  }
+  function refreshHall() {
+    const el = $('#v2hall'); if (!el) return;
+    const crowns = stats.w.easy + stats.w.medium + stats.w.hard;
+    el.innerHTML = `<span>👑 ${crowns}</span><span>🔥 ${stats.streak}</span><span>🧩 ${stats.pz.solved}</span>`;
+    const pb = $('#btnPuzzle'); if (pb) pb.classList.toggle('ready', stats.pz.lastDone !== today());
+  }
+  function openHall() {
+    modal.dataset.dismiss = '';
+    const row = (k, n) => `<div class="v2lv"><b>${n}</b><span class="v2cr">👑 ${stats.w[k]}</span><small>поражений: ${stats.l[k]}</small></div>`;
+    openModal(`<h2>Зал славы</h2><div class="v2crown">♛</div>
+      <div class="v2grid">${row('easy', 'Лёгкий')}${row('medium', 'Средний')}${row('hard', 'Сложный')}</div>
+      <div class="v2grid two"><div class="v2lv"><b>Серия побед</b><span class="v2cr">🔥 ${stats.streak}</span><small>рекорд: ${stats.best}</small></div>
+      <div class="v2lv"><b>Задачи дня</b><span class="v2cr">🧩 ${stats.pz.solved}</span><small>серия: ${stats.pz.streak} · рекорд: ${stats.pz.best}</small></div></div>
+      <p class="result-sub">Всего партий с компьютером: ${stats.games} · ничьих: ${stats.d}</p>
+      <div class="actions"><button class="btn primary" id="hallOk">Закрыть</button></div>`, true);
+    $('#hallOk').onclick = closeModal;
+  }
+  function mateMoves() { const r = []; for (const m of chess.legal()) { chess.make(m); const s = chess.status(); chess.unmake(m); if (s.over && s.reason === 'mate') r.push(m); } return r; }
+  function startPuzzle() {
+    cancelEngine();
+    const idx = dayIndex(), fen = PUZZLES[idx];
+    chess = new C(); chess.load(fen);
+    G = { mode: 'puzzle', human: chess.turn, level: 'easy', timer: 0, clocks: [0, 0], moves: [], over: null, fen, pidx: idx, tries: 0 };
+    selected = -1; hint = null; promoMoves = null; hidePromo();
+    flipped = chess.turn === 1;
+    showScreen('game'); renderAll();
+    toast(`Задача дня: ${chess.turn ? 'Тьма' : 'Свет'} ставит мат в 1 ход`);
+  }
+  function puzzleAfterMove(st) {
+    if (st.over && st.reason === 'mate') {
+      G.over = { result: chess.turn ? 'w' : 'b', reason: 'mate' };
+      const first = stats.pz.lastDone !== today();
+      if (first) {
+        const y = new Date(); y.setDate(y.getDate() - 1);
+        stats.pz.streak = stats.pz.lastDone === today(y) ? stats.pz.streak + 1 : 1;
+        stats.pz.best = Math.max(stats.pz.best, stats.pz.streak); stats.pz.solved++; stats.pz.lastDone = today(); saveStats(); refreshHall();
+      }
+      renderMarks(); renderPanels(); updateButtons();
+      confetti(G.over.result); A.play('win'); royalBurst();
+      setTimeout(() => {
+        modal.dataset.dismiss = '';
+        openModal(`<div class="result-icon">🧩</div><h2>Задача решена!</h2><p class="result-sub">${G.tries ? 'Попыток: ' + (G.tries + 1) : 'С первой попытки — великолепно!'}</p>
+          <p class="result-sub">🔥 Серия задач: <b>${stats.pz.streak}</b> · всего решено: <b>${stats.pz.solved}</b></p>
+          <p class="result-sub">Новая задача появится завтра.</p>
+          <div class="actions"><button class="btn primary" id="pzNew">♛ Сыграть партию</button><button class="btn glass small" id="pzHome">🏠 Главное меню</button></div>`, true);
+        $('#pzNew').onclick = openNewGame; $('#pzHome').onclick = () => { closeModal(); G = null; showScreen('start'); };
+      }, 1100);
+      return;
+    }
+    G.tries++;
+    toast('Это ещё не мат — попробуйте другой ход', true); A.play('bad');
+    thinking = true;
+    setTimeout(() => { thinking = false; chess.undo(); G.moves.pop(); renderAll(); }, 750);
+  }
+  function puzzleHint() {
+    const ms = mateMoves(); if (!ms.length) return;
+    hint = ms[0]; deselect(); renderMarks(); toast('Подсказка: ' + chess.san(hint)); A.play('select');
+  }
+  // королевский салют — золотые искры по всей доске
+  function royalBurst() {
+    for (let i = 0; i < 6; i++) setTimeout(() => sparks((Math.random() * 64) | 0, i % 2 ? '#ff7eb6' : '#ffd25e', 16), i * 140);
+  }
+  // ---------- живой сказочный фон ----------
+  const FX = { cv: null, c: null, t: 0, last: 0, clouds: [], spk: [], w: 0, h: 0 };
+  function fxInit() {
+    FX.cv = document.createElement('canvas'); FX.cv.id = 'v2fx'; $('#bg').appendChild(FX.cv);
+    const rs = () => { const d = Math.min(1.5, devicePixelRatio || 1); FX.w = innerWidth; FX.h = innerHeight; FX.cv.width = FX.w * d; FX.cv.height = FX.h * d; FX.c = FX.cv.getContext('2d'); FX.c.setTransform(d, 0, 0, d, 0, 0); };
+    rs(); addEventListener('resize', rs);
+    FX.clouds = Array.from({ length: 5 }, (_, i) => ({ x: Math.random(), y: .06 + i * .1 + Math.random() * .05, s: .6 + Math.random() * .7, v: .004 + Math.random() * .006 }));
+    FX.spk = Array.from({ length: 36 }, () => ({ x: Math.random(), y: Math.random(), s: 1 + Math.random() * 2.2, p: Math.random() * 6.3, v: .8 + Math.random() * 1.6 }));
+    requestAnimationFrame(fxFrame);
+  }
+  function cloud(c, x, y, s) {
+    c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = 'rgba(255,255,255,.75)';
+    c.beginPath(); c.arc(0, 0, 22, 0, 6.3); c.arc(26, -10, 28, 0, 6.3); c.arc(56, 0, 22, 0, 6.3); c.arc(28, 8, 24, 0, 6.3); c.fill(); c.restore();
+  }
+  function castle(c, x, base, s, col, flip) {
+    c.save(); c.translate(x, base); c.scale(flip ? -s : s, s); c.fillStyle = col;
+    c.fillRect(-40, -60, 80, 60); c.fillRect(-60, -95, 26, 95); c.fillRect(34, -95, 26, 95); c.fillRect(-14, -130, 28, 70);
+    c.beginPath(); c.moveTo(-64, -95); c.lineTo(-47, -130); c.lineTo(-30, -95); c.moveTo(30, -95); c.lineTo(47, -130); c.lineTo(64, -95); c.moveTo(-18, -130); c.lineTo(0, -168); c.lineTo(18, -130); c.fill();
+    c.fillStyle = 'rgba(255,240,170,.85)'; for (const [wx, wy] of [[-50, -78], [44, -78], [-5, -110], [-10, -40], [6, -40]]) c.fillRect(wx, wy, 7, 11);
+    c.restore();
+  }
+  function fxFrame(now) {
+    requestAnimationFrame(fxFrame);
+    if (document.hidden || !settings.anim || now - FX.last < 40) return;
+    const dt = Math.min(.1, (now - FX.last) / 1000 || .04); FX.last = now; FX.t += dt;
+    const c = FX.c, W = FX.w, H = FX.h, t = FX.t; c.clearRect(0, 0, W, H);
+    // солнце и луна
+    const sx = W * .16, sy = H * .1 + Math.sin(t * .3) * 4;
+    let g = c.createRadialGradient(sx, sy, 0, sx, sy, 110); g.addColorStop(0, 'rgba(255,248,200,.95)'); g.addColorStop(.25, 'rgba(255,214,110,.75)'); g.addColorStop(1, 'rgba(255,214,110,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(sx, sy, 110, 0, 6.3); c.fill();
+    c.save(); c.translate(sx, sy); c.rotate(t * .08); c.fillStyle = 'rgba(255,240,170,.18)';
+    for (let i = 0; i < 12; i++) { c.rotate(Math.PI / 6); c.beginPath(); c.moveTo(0, 0); c.lineTo(160, -10); c.lineTo(160, 10); c.fill(); }
+    c.restore();
+    const mx = W * .86, my = H * .16; g = c.createRadialGradient(mx, my, 0, mx, my, 70); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.3, 'rgba(220,200,255,.55)'); g.addColorStop(1, 'rgba(200,170,255,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(mx, my, 70, 0, 6.3); c.fill();
+    // облака
+    for (const k of FX.clouds) { k.x += k.v * dt; if (k.x > 1.2) k.x = -.3; cloud(c, k.x * W, k.y * H, k.s); }
+    // замки Света и Тьмы
+    castle(c, W * .12, H + 4, Math.min(1, W / 420) * .9, 'rgba(255,200,120,.55)', false);
+    castle(c, W * .9, H + 4, Math.min(1, W / 420) * .8, 'rgba(150,110,230,.5)', true);
+    // искры
+    for (const p of FX.spk) {
+      const a = Math.max(0, Math.sin(t * p.v + p.p)); if (a < .05) continue;
+      const x = p.x * W, y = p.y * H, r = p.s * (1 + a * 2);
+      c.fillStyle = `rgba(255,255,255,${a * .85})`; c.beginPath(); c.moveTo(x, y - r * 2); c.quadraticCurveTo(x, y, x + r * 2, y); c.quadraticCurveTo(x, y, x, y + r * 2); c.quadraticCurveTo(x, y, x - r * 2, y); c.quadraticCurveTo(x, y, x, y - r * 2); c.fill();
+    }
+  }
+  function renderHeroes() {
+    $('#heroL').innerHTML = PC.svg('K', 'w'); $('#heroD').innerHTML = PC.svg('Q', 'b');
+    $('#heroL2').innerHTML = PC.svg('N', 'w'); $('#heroD2').innerHTML = PC.svg('B', 'b');
+  }
+
   // ---------- кнопки ----------
   $('#btnNew').onclick = () => { A.unlock(); openNewGame(); };
   $('#btnContinue').onclick = () => { A.unlock(); const s = load(LS_SAVE); if (s) resumeGame(s); };
@@ -564,13 +713,16 @@
   let lastTouch = 0;
   document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouch < 320) e.preventDefault(); lastTouch = n; }, { passive: false });
 
-  applySettings(); refreshStart();
+  applySettings(); refreshStart(); saveSettings();
+  $('#btnPuzzle').onclick = () => { A.unlock(); startPuzzle(); };
+  $('#btnHall').onclick = openHall;
+  refreshHall(); fxInit();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('service-worker.js').catch(() => { });
 
   // хук для автотестов
   window.__cq = {
     get chess() { return chess; }, get G() { return G; }, get thinking() { return thinking; }, get flipped() { return flipped; },
     tap: name => onTap(C.sqIdx(name)), at: name => { const p = chess.board[C.sqIdx(name)]; return p ? LETTER[p & 7] + ((p >> 3) ? 'b' : 'w') : ''; },
-    startGame, settings
+    startGame, settings, startPuzzle, get stats() { return stats; }, mateMoves, PUZZLES, finish: st => finishGame(st)
   };
 })();

@@ -1,0 +1,69 @@
+/* ===== v2 «Сказочное королевство»: яркий мультяшный стиль ===== */
+html,body{background:#c9b6ff}
+#bg{background:linear-gradient(180deg,#ffc9e8 0%,#e6c8ff 38%,#b9d8ff 72%,#a8f0ff 100%)}
+#bg .orb{opacity:.35}
+#bg .stars{display:none}
+#v2fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+/* старт */
+.logo-crown{font-size:52px;filter:drop-shadow(0 0 14px #fff)}
+.title{background:linear-gradient(180deg,#fffbe6,#ffd24a 45%,#ff9a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #7a2fb8) drop-shadow(0 0 18px rgba(255,255,255,.8))}
+.title span{background:linear-gradient(90deg,#ffe36b,#ff6fb1 50%,#9d6bff);-webkit-background-clip:text;background-clip:text}
+.subtitle{color:#5b2a9a;font-weight:800;text-shadow:0 1px 0 #fff}
+.hero-glow{opacity:.85}
+.hero-piece{filter:drop-shadow(0 10px 10px rgba(90,30,140,.35))}
+.btn{border:2px solid rgba(255,255,255,.85);text-shadow:0 1px 0 rgba(0,0,0,.2)}
+.btn.primary{color:#fff;background:linear-gradient(180deg,#c084fc,#8b5cf6 55%,#db2777);box-shadow:inset 0 -5px 0 rgba(80,20,120,.45),inset 0 3px 0 rgba(255,255,255,.4),0 10px 26px rgba(139,92,246,.45)}
+.btn.gold{color:#4a2400;text-shadow:none;background:linear-gradient(180deg,#fff6c2,#ffd24a 50%,#ff9f0a);box-shadow:inset 0 -5px 0 rgba(160,80,0,.35),inset 0 3px 0 rgba(255,255,255,.7),0 10px 24px rgba(245,158,11,.45)}
+.btn.glass{color:#4a1d7a;text-shadow:0 1px 0 #fff;background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.55));border:2px solid #fff;box-shadow:inset 0 -4px 0 rgba(120,80,200,.18),0 8px 20px rgba(90,40,160,.18)}
+.v2duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.v2duo .btn{padding:13px 8px;font-size:15.5px;position:relative}
+.v2duo .btn.ready::after{content:"!";position:absolute;top:-7px;right:-5px;width:22px;height:22px;border-radius:50%;background:#ff2d6f;color:#fff;font-size:14px;display:grid;place-items:center;box-shadow:0 0 0 2px #fff;animation:v2bob 1.2s ease-in-out infinite}
+@keyframes v2bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.v2hall{display:flex;justify-content:center;gap:8px;margin-top:2px}
+.v2hall span{background:rgba(255,255,255,.7);border:1.5px solid #fff;border-radius:999px;padding:4px 11px;font-weight:900;font-size:14px;color:#5b2a9a;box-shadow:0 4px 10px rgba(90,40,160,.15)}
+/* игра */
+.top-title b{background:linear-gradient(90deg,#ffb000,#ff4fa0,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 #fff)}
+.top-title small{color:#4a1d7a;font-weight:700}
+.icon-btn{background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.6));border:2px solid #fff;color:#4a1d7a;box-shadow:0 4px 12px rgba(90,40,160,.2)}
+.panel{background:linear-gradient(145deg,rgba(76,29,149,.82),rgba(59,18,110,.82));border:2px solid rgba(255,255,255,.7);box-shadow:0 8px 22px rgba(70,20,130,.25),inset 0 1px 0 rgba(255,255,255,.25)}
+.panel:not(.dark){background:linear-gradient(145deg,rgba(255,180,60,.88),rgba(236,120,40,.86))}
+.panel:not(.dark) .pname{color:#fff;text-shadow:0 1px 0 rgba(120,50,0,.5)}
+.panel.active{border-color:#fff;box-shadow:0 0 0 3px rgba(255,236,140,.75),0 0 26px rgba(255,220,100,.8)}
+.panel.dark.active{box-shadow:0 0 0 3px rgba(216,180,254,.8),0 0 26px rgba(192,132,252,.8)}
+.pstate{color:#fff7c2;text-shadow:0 1px 0 rgba(0,0,0,.3)}
+.avatar{background:radial-gradient(circle at 50% 30%,#fff,rgba(255,255,255,.35))}
+#board{border-radius:12px;box-shadow:0 0 0 4px #fff7d6,0 0 0 9px #f5b62a,0 0 0 12px #fff2b0,0 18px 40px rgba(80,20,140,.45),0 0 50px rgba(255,220,120,.7)}
+.board-wrap::before{content:"";position:absolute;inset:-26px;border-radius:30px;background:radial-gradient(circle,rgba(255,255,255,.55),transparent 70%);pointer-events:none}
+.board-wrap::after{content:"♛";position:absolute;left:50%;top:-25px;transform:translateX(-50%);font-size:26px;color:#ffcf3a;text-shadow:0 2px 0 #b06a00,0 0 10px #fff;pointer-events:none;z-index:4}
+.sq.l{box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.theme-fairy{--light:linear-gradient(135deg,#fffaf0,#ffe9c7);--dark:linear-gradient(135deg,#c9a2ff,#9f6ef0);--lightC:#fff3dc;--darkC:#8a5ae0;--frame:#f5b62a;--frameGlow:rgba(255,220,120,.6);--last:rgba(255,214,74,.5);--sel:rgba(255,240,150,.7);--dot:rgba(110,40,190,.45)}
+.theme-candy{--light:linear-gradient(135deg,#fff6fb,#ffe0ef);--dark:linear-gradient(135deg,#7ee0d2,#3fbfb0);--lightC:#ffeaf4;--darkC:#2ea597;--frame:#ff7eb6;--frameGlow:rgba(255,126,182,.55);--last:rgba(255,160,210,.5);--sel:rgba(255,236,140,.65);--dot:rgba(200,40,120,.4)}
+.piece.pc-hero,.piece .pc-hero{overflow:visible}
+.mk.sel{box-shadow:inset 0 0 0 3px #fff,0 0 14px 2px rgba(255,240,150,.9)}
+.mk.dot::after{background:radial-gradient(circle,#fff,var(--dot) 70%);box-shadow:0 0 8px rgba(255,255,255,.9)}
+.history{background:rgba(255,255,255,.72);border:2px solid #fff;color:#4a1d7a}
+.history .empty,.history .num{color:#7c4dbb}
+.controls button{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.62));border:2px solid #fff;color:#4a1d7a;box-shadow:inset 0 -3px 0 rgba(120,80,200,.18),0 6px 14px rgba(90,40,160,.18)}
+.controls button i{filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))}
+/* окна */
+.sheet{background:linear-gradient(170deg,#fffaff,#f3e8ff 60%,#ffe9f4);border:3px solid #fff;color:#3b1466;box-shadow:0 -10px 40px rgba(80,20,140,.35)}
+.sheet h2{background:linear-gradient(90deg,#ff8a00,#ff3c8e,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent}
+.field>label{color:#7c4dbb}
+.seg{background:#eadcff}
+.seg button{color:#4a1d7a}
+.themes button{background:#f1e6ff;color:#4a1d7a}
+.row{border-bottom-color:#eadcff;color:#3b1466}
+.toggle{background:#d6c7ee}
+.result-sub{color:#6b3fa0}
+.menu-list button{background:#f1e6ff;color:#3b1466}
+.menu-list button.danger{color:#e11d48}
+.sheet .btn.glass{color:#4a1d7a}
+.v2crown{text-align:center;font-size:54px;color:#ffc21a;text-shadow:0 3px 0 #b06a00,0 0 18px #fff3b0;animation:crownBob 2.4s ease-in-out infinite}
+.v2grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.v2grid.two{grid-template-columns:1fr 1fr}
+.v2lv{background:#f1e6ff;border-radius:16px;padding:10px 6px;text-align:center;border:2px solid #fff;box-shadow:0 3px 0 #dccbf5}
+.v2lv b{display:block;font-size:12.5px;color:#7c4dbb}
+.v2lv .v2cr{display:block;font-size:22px;font-weight:900;color:#3b1466;margin:2px 0}
+.v2lv small{font-size:11px;color:#8e6bb8;font-weight:700}
+.v2win{font-size:16px;color:#b45309!important}
+#toast{border:2px solid #fff}

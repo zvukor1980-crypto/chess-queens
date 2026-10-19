@@ -215,17 +215,4 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-
 }
 @media (prefers-reduced-motion:reduce){.anim .pc-fig,.anim .pc-hair,.anim .pc-cape,.anim .pc-glow,.anim .pc-horse,.orb{animation:none}}
 
-/* Royal salon: quieter surfaces, a clear board, and warm metallic accents. */
-#bg{background:radial-gradient(ellipse at 15% 10%,#70563650,transparent 55%),radial-gradient(ellipse at 90% 90%,#665d9d38,transparent 55%),#111722}
-.title{letter-spacing:-1px;text-shadow:0 4px 22px #0008}.title span{color:#ecd5a4}
-.btn.primary{background:linear-gradient(135deg,#f0d9a8,#bd9364);color:#241e29;border:1px solid #fff6;box-shadow:0 6px 22px #0004;text-shadow:none}
-.btn.glass{background:#202638cc;border:1px solid #c5b39730;color:#e9e4da}
-.panel{background:linear-gradient(145deg,#252c3bee,#191f2cee);border:1px solid #cbbda12b;box-shadow:0 8px 24px #0003}
-#board.theme-marble{--light:linear-gradient(135deg,#f2ede3,#d8d3c9);--dark:linear-gradient(135deg,#778a96,#4c6272);--lightC:#e9e4d8;--darkC:#566b79;--frame:#c7b28c;--frameGlow:#d8bc8730}
-.board-wrap{filter:drop-shadow(0 14px 28px #0005)}
-.controls{border-top:1px solid #d9c59d22}.controls button{color:#e4dcca}
-button:focus-visible{outline:3px solid #ead39f;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-
-/* Observatory board: slate and ivory with a luminous selection ring. */
-#board.theme-marble{--light:linear-gradient(140deg,#eee5cc,#c8c8bc);--dark:linear-gradient(145deg,#4a7283,#244a65);--frame:#c7ae7e;--frameGlow:#e8cd9538}.sq.l{box-shadow:inset 0 1px 0 #fff5}.sq.d{box-shadow:inset 0 1px 0 #b7e5ed22}.piece .pc{filter:drop-shadow(1px 5px 2px #03152c55)}#board{border-radius:7px;box-shadow:0 0 0 6px #233747,0 0 0 9px #bbac8a,0 20px 45px #0007}
