@@ -125,7 +125,8 @@
   }
   function renderPanels() {
     const bottomSide = flipped ? 1 : 0;
-    const mats = [material(0), material(1)], START = [0, 8, 2, 2, 2, 1, 0];
+    const mats = [material(0), material(1)], START0 = [0, 8, 2, 2, 2, 1, 0];
+    const startOf = side => { if (!G || !G.fen) return START0; const k = side ? 'pnbrqk' : 'PNBRQK', c = [0, 0, 0, 0, 0, 0, 0]; for (const ch of G.fen.split(' ')[0]) { const i = k.indexOf(ch); if (i >= 0) c[i + 1]++; } return c; };
     [['#panelBottom', bottomSide], ['#panelTop', bottomSide ^ 1]].forEach(([sel, side]) => {
       const el = $(sel), opp = side ^ 1;
       el.classList.toggle('dark', side === 1);
@@ -137,7 +138,7 @@
       el.querySelector('.pname').textContent = name;
       let tray = '';
       for (const t of [5, 4, 3, 2, 1]) {
-        const miss = Math.max(0, START[t] - mats[opp].cnt[t]);
+        const miss = Math.max(0, startOf(opp)[t] - mats[opp].cnt[t]);
         for (let i = 0; i < miss; i++) tray += `<span class="cp">${PC.svg(LETTER[t], opp ? 'b' : 'w')}</span>`;
       }
       const adv = mats[side].val - mats[opp].val;
@@ -181,7 +182,7 @@
   }
   function renderMode() {
     if (!G) return;
-    let t = G.mode === 'puzzle' ? '🧩 Задача дня · мат в 1 ход' : G.mode === 'ai' ? 'Против компьютера · ' + LEVELS[G.level] : 'Вдвоём на одном телефоне';
+    let t = G.quest != null && QUESTS[G.quest] ? '🏰 Поход · этап ' + (G.quest + 1) + ': ' + QUESTS[G.quest].n : G.mode === 'puzzle' ? '🧩 Задача дня · мат в 1 ход' : G.mode === 'ai' ? 'Против компьютера · ' + LEVELS[G.level] : 'Вдвоём на одном телефоне';
     if (G.timer) t += ' · ' + G.timer + ' мин';
     $('#modeLabel').textContent = t;
   }
@@ -360,7 +361,8 @@
     cancelEngine();
     const human = o.color === 'r' ? (Math.random() < .5 ? 0 : 1) : (o.color === 'b' ? 1 : 0);
     G = { mode: o.mode, human, level: o.level, timer: +o.timer || 0, clocks: [o.timer * 60000, o.timer * 60000], moves: [], over: null };
-    chess = new C(); selected = -1; hint = null; promoMoves = null; hidePromo();
+    if (o.fen) { G.fen = o.fen; G.quest = o.quest; G.help = 0; }
+    chess = new C(); if (o.fen) chess.load(o.fen); selected = -1; hint = null; promoMoves = null; hidePromo();
     flipped = G.mode === 'ai' && human === 1;
     showScreen('game'); renderAll(); saveGame();
     toast(G.mode === 'ai' ? (human === 0 ? 'Вы играете за Свет ☀' : 'Вы играете за Тьму ☾') : 'Свет ходит первым ☀');
@@ -368,7 +370,7 @@
   }
   function resumeGame(s) {
     cancelEngine();
-    chess = new C();
+    chess = new C(); if (s.fen) chess.load(s.fen);
     for (const u of s.moves) { const m = chess.findUci(u); if (!m) break; chess.play(m); }
     G = Object.assign({}, s, { moves: chess.moveList.map(x => x.uci) });
     flipped = !!s.flipped; selected = -1; hint = null;
@@ -442,6 +444,7 @@
   function finishGame(st) {
     G.over = { result: st.result, reason: st.reason };
     thinking = false; deselect(); saveGame(); const rec = recordResult(st);
+    const humanWon0 = G.mode === 'ai' && st.result !== 'd' && ((st.result === 'w') === (G.human === 0)); const qr = questFinish(st, humanWon0);
     renderMarks(); renderPanels(); updateButtons();
     const humanWon = G.mode === 'ai' && st.result !== 'd' && ((st.result === 'w') === (G.human === 0));
     const humanLost = G.mode === 'ai' && st.result !== 'd' && !humanWon;
@@ -462,12 +465,14 @@
     const pcs = st.result === 'd' ? PC.svg('K', 'w') + '</div><div>' + PC.svg('K', 'b') : PC.svg('K', wc) + '</div><div>' + PC.svg('Q', wc);
     setTimeout(() => {
       modal.dataset.dismiss = '';
-      const extra = rec === 'w' ? `<p class="result-sub v2win">👑 +1 корона · 🔥 серия побед: <b>${stats.streak}</b></p>` : rec === 'l' ? '<p class="result-sub">Серия прервана — реванш?</p>' : '';
+      const qx = qr && qr.won ? `<div class="v3stars">${[0, 1, 2].map(k => `<i class="${k < qr.s ? 'on' : ''}" style="animation-delay:${.3 + k * .25}s">★</i>`).join('')}</div><p class="result-sub">Этап «${QUESTS[G.quest].n}» пройден за ${qr.myMoves} ход. (цель ${qr.par})${G.help ? ' · с подсказками' : ''}</p>` : qr ? '<p class="result-sub">Этап не пройден — попробуй ещё раз!</p>' : '';
+      const extra = qx + (rec === 'w' ? `<p class="result-sub v2win">👑 +1 корона · 🔥 серия побед: <b>${stats.streak}</b></p>` : rec === 'l' ? '<p class="result-sub">Серия прервана — реванш?</p>' : '');
       if (rec === 'w') royalBurst();
       openModal(`<div class="result-icon">${icon}</div><h2 id="resultTitle">${title}</h2><p class="result-sub">${sub}</p>${extra}
         <div class="result-pieces anim"><div>${pcs}</div></div>
-        <div class="actions"><button class="btn gold" id="resAgain">⟳ Реванш</button><button class="btn primary" id="resNew">♛ Новая игра</button><button class="btn glass small" id="resView">Посмотреть доску</button></div>`, true);
-      $('#resAgain').onclick = () => { closeModal(); startGame({ mode: G.mode, color: G.mode === 'ai' ? (G.human ? 'w' : 'b') : 'w', level: G.level, timer: G.timer }); };
+        <div class="actions">${qr && qr.won && qr.next != null ? '<button class="btn gold" id="resNext">🏰 Следующий этап</button>' : ''}${qr ? '<button class="btn glass small" id="resMap">🗺 Карта похода</button>' : ''}<button class="btn gold" id="resAgain">⟳ Реванш</button><button class="btn primary" id="resNew">♛ Новая игра</button><button class="btn glass small" id="resView">Посмотреть доску</button></div>`, true);
+      const rn = $('#resNext'); if (rn) rn.onclick = () => startQuest(qr.next); const rm = $('#resMap'); if (rm) rm.onclick = openQuest;
+      const qi = G.quest; if (qi != null) { $('#resAgain').onclick = () => startQuest(qi); } else $('#resAgain').onclick = () => { closeModal(); startGame({ mode: G.mode, color: G.mode === 'ai' ? (G.human ? 'w' : 'b') : 'w', level: G.level, timer: G.timer }); };
       $('#resNew').onclick = openNewGame;
       $('#resView').onclick = closeModal;
     }, st.reason === 'mate' ? 1100 : 500);
@@ -484,13 +489,13 @@
     } catch (e) { worker = null; }
     return worker;
   }
-  function runEngine(id, moves, level) {
+  function runEngine(id, moves, level, fen) {
     return new Promise(res => {
-      const local = () => setTimeout(() => res(window.CQEngine.bestMove(moves, level)), 20);
+      const local = () => setTimeout(() => res(window.CQEngine.bestMove(moves, level, fen)), 20);
       const w = getWorker();
       if (!w) return local();
       pending.set(id, d => d.ok ? res(d.result) : local());
-      w.postMessage({ id, moves, level });
+      w.postMessage({ id, moves, level, fen });
     });
   }
   function cancelEngine() {
@@ -502,7 +507,7 @@
     if (!G || G.mode !== 'ai' || G.over || chess.turn === G.human) { updateButtons(); return; }
     const id = ++reqId, moves = G.moves.slice(), t0 = performance.now();
     thinking = true; renderPanels();
-    runEngine(id, moves, G.level).then(r => {
+    runEngine(id, moves, G.level, G.fen).then(r => {
       if (id !== reqId || !G || G.over) return;
       const wait = Math.max(0, 420 - (performance.now() - t0));
       setTimeout(() => {
@@ -518,10 +523,10 @@
     if (!G || G.over || thinking) return;
     if (G.mode === 'puzzle') { G.tries++; puzzleHint(); return; }
     if (G.mode === 'ai' && chess.turn !== G.human) return;
-    const id = ++reqId, moves = G.moves.slice();
+    const id = ++reqId, moves = G.moves.slice(); if (G.quest != null) G.help = (G.help || 0) + 1;
     toast('Королева размышляет… 💭');
     $('#btnHint').disabled = true;
-    runEngine(id, moves, 'hint').then(r => {
+    runEngine(id, moves, 'hint', G.fen).then(r => {
       updateButtons();
       if (id !== reqId || G.moves.length !== moves.length || !r) return;
       const m = chess.findUci(r.uci); if (!m) return;
@@ -536,7 +541,7 @@
       const humanMoves = G.human === 0 ? Math.ceil(G.moves.length / 2) : Math.floor(G.moves.length / 2);
       if (!humanMoves) { toast('Нечего отменять'); return; }
     }
-    cancelEngine(); promoMoves = null; hidePromo();
+    cancelEngine(); promoMoves = null; hidePromo(); if (G.quest != null) G.help = (G.help || 0) + 1;
     chess.undo();
     if (G.mode === 'ai') while (chess.turn !== G.human && chess.moveList.length) chess.undo();
     G.moves = chess.moveList.map(x => x.uci);
@@ -562,6 +567,56 @@
     if ((saveTick += dt) > 2000) { saveTick = 0; saveGame(); }
   }, 200);
 
+
+  // ================= v3: «Королевский поход» — 10 сказочных этапов, звёзды, новая сцена =================
+  const LS_QUEST = 'cq.quest.v1';
+  const STD = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const QUESTS = [
+    { n: 'Урок принцессы', d: 'У Тьмы лишь король и четыре пешки. Поставь первый мат!', fen: '4k3/pppp4/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1', lv: 'easy', par: 20, em: '🌸' },
+    { n: 'Мост лучниц', d: 'Тёмный король прячется за ладьёй и пешками.', fen: 'r3k3/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQq - 0 1', lv: 'easy', par: 28, em: '🏹' },
+    { n: 'Лесная засада', d: 'Тьма потеряла королеву в лесу — воспользуйся!', fen: 'rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', lv: 'easy', par: 32, em: '🌲' },
+    { n: 'Две башни', d: 'У Тьмы нет ладей, но соперник стал умнее.', fen: '1nbqkbn1/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1', lv: 'medium', par: 36, em: '🗼' },
+    { n: 'Тень над замком', d: 'Без королевы, но с хитрым стратегом.', fen: 'rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', lv: 'medium', par: 40, em: '🏰' },
+    { n: 'Ночная охота', d: 'У Тьмы не хватает коня и слона.', fen: 'r1bqk1nr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', lv: 'medium', par: 40, em: '🦉' },
+    { n: 'Равный бой', d: 'Силы равны. Покажи, чему научилась!', fen: STD, lv: 'medium', par: 45, em: '⚖️' },
+    { n: 'Лунная крепость', d: 'Твой конь ушёл в разведку — играй без него.', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq - 0 1', lv: 'medium', par: 50, em: '🌙' },
+    { n: 'Тёмная королева', d: 'Мастер Тьмы без королевы — но очень силён.', fen: 'rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', lv: 'hard', par: 50, em: '🔮' },
+    { n: 'Трон Света', d: 'Финальная битва с сильнейшим соперником.', fen: STD, lv: 'hard', par: 60, em: '👑' },
+  ];
+  const quest = (() => { const q = load(LS_QUEST); return q && typeof q === 'object' && q.stars ? q : { stars: {} }; })();
+  const saveQuest = () => store(LS_QUEST, quest);
+  const qStars = () => Object.values(quest.stars).reduce((a, b) => a + (+b || 0), 0);
+  const qOpen = i => i === 0 || (quest.stars[i - 1] || 0) > 0;
+  const qNext = () => { for (let i = 0; i < QUESTS.length; i++) if (!(quest.stars[i] > 0)) return i; return QUESTS.length - 1; };
+  function startQuest(i) { const Q = QUESTS[i]; closeModal(); startGame({ mode: 'ai', color: 'w', level: Q.lv, timer: 0, fen: Q.fen, quest: i }); toast(Q.em + ' Этап ' + (i + 1) + ': ' + Q.n); }
+  function openQuest() {
+    modal.dataset.dismiss = '';
+    const rows = QUESTS.map((Q, i) => { const s = quest.stars[i] || 0, op = qOpen(i); return `<button class="v3q ${op ? '' : 'lock'} ${i === qNext() ? 'cur' : ''}" data-q="${i}"><i>${op ? Q.em : '🔒'}</i><span><b>${i + 1}. ${Q.n}</b><small>${op ? Q.d : 'Пройди предыдущий этап'}</small></span><em>${'★'.repeat(s)}<u>${'★'.repeat(3 - s)}</u></em></button>`; }).join('');
+    openModal(`<h2>Королевский поход</h2><p class="result-sub">Проведи Свет через 10 сказочных битв · звёзды: <b>${qStars()} / 30</b></p><p class="v3rules">★ победа · ★ быстрая победа · ★ без отмен и подсказок</p><div class="v3qlist">${rows}</div><div class="actions"><button class="btn glass small" id="qClose">Закрыть</button></div>`, true);
+    $('#qClose').onclick = closeModal;
+    document.querySelectorAll('.v3q').forEach(b => b.onclick = () => { const i = +b.dataset.q; if (!qOpen(i)) { toast('Сначала пройди этап ' + i, true); A.play('bad'); return; } startQuest(i); });
+    const cur = document.querySelector('.v3q.cur'); if (cur) cur.scrollIntoView({ block: 'center' });
+  }
+  function questFinish(st, won) {
+    if (G.quest == null || G.qDone) return null; G.qDone = true; if (!won) return { won: false };
+    const Q = QUESTS[G.quest], myMoves = Math.ceil(G.moves.length / 2);
+    const s = 1 + (myMoves <= Q.par ? 1 : 0) + (!G.help ? 1 : 0), old = quest.stars[G.quest] || 0;
+    quest.stars[G.quest] = Math.max(old, s); saveQuest(); refreshQuestBtn();
+    return { won: true, s, myMoves, par: Q.par, next: G.quest + 1 < QUESTS.length ? G.quest + 1 : null };
+  }
+  function refreshQuestBtn() { const b = $('#btnQuest'); if (b) b.querySelector('small').textContent = 'Этап ' + (qNext() + 1) + ' из 10 · ★ ' + qStars() + '/30'; }
+  // --- сцена титула: сияющая шахматная площадь в перспективе ---
+  function v3Floor() {
+    const hero = document.querySelector('.hero'); if (!hero) return; let cv = $('#v3floor'); if (!cv) { cv = document.createElement('canvas'); cv.id = 'v3floor'; hero.insertBefore(cv, hero.firstChild); }
+    const w = hero.clientWidth, h = hero.clientHeight; if (!w || !h) return; const d = Math.min(2, devicePixelRatio || 1); cv.width = Math.round(w * d); cv.height = Math.round(h * d * 0.75);
+    const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0); const H = h * 0.75, y0 = H * 0.2, cx = w / 2, N = 8;
+    const P = (u, v) => { const z = 1 + v * 2.2; return [cx + (u - 0.5) * w * 1.25 / z * 1.6, H - (H - y0) * (1 - 1 / z) * 1.45]; };
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = P(i / N, j / N), b = P((i + 1) / N, j / N), e = P((i + 1) / N, (j + 1) / N), f = P(i / N, (j + 1) / N); const dark = (i + j) % 2; const g = c.createLinearGradient(0, f[1], 0, a[1]); g.addColorStop(0, dark ? 'rgba(150,90,230,.55)' : 'rgba(255,240,200,.65)'); g.addColorStop(1, dark ? 'rgba(110,60,200,.9)' : 'rgba(255,250,235,.95)'); c.fillStyle = g; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(e[0], e[1]); c.lineTo(f[0], f[1]); c.closePath(); c.fill(); }
+    // золотая кайма
+    const l0 = P(0, 0), r0 = P(1, 0), r1 = P(1, 1), l1 = P(0, 1); c.strokeStyle = '#ffd25e'; c.lineWidth = 3; c.shadowColor = '#ffd25e'; c.shadowBlur = 12; c.beginPath(); c.moveTo(l0[0], l0[1]); c.lineTo(r0[0], r0[1]); c.lineTo(r1[0], r1[1]); c.lineTo(l1[0], l1[1]); c.closePath(); c.stroke(); c.shadowBlur = 0;
+    // туман вдали
+    const fg = c.createLinearGradient(0, l1[1] - 4, 0, l1[1] + H * 0.35); fg.addColorStop(0, 'rgba(255,230,255,.9)'); fg.addColorStop(1, 'rgba(255,230,255,0)'); c.fillStyle = fg; c.fillRect(0, l1[1] - 6, w, H * 0.35);
+  }
 
   // ================= v2: сказочный режим =================
   const LS_STATS = 'cq.stats.v1';
@@ -715,12 +770,12 @@
 
   applySettings(); refreshStart(); saveSettings();
   $('#btnPuzzle').onclick = () => { A.unlock(); startPuzzle(); };
-  $('#btnHall').onclick = openHall;
-  refreshHall(); fxInit();
+  $('#btnHall').onclick = openHall; $('#btnQuest').onclick = () => { A.unlock(); openQuest(); };
+  refreshHall(); fxInit(); refreshQuestBtn(); setTimeout(v3Floor, 60); addEventListener('resize', () => setTimeout(v3Floor, 60));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('service-worker.js').catch(() => { });
 
   // хук для автотестов
-  window.__cq = {
+  window.__cq = { QUESTS, quest, startQuest, openQuest,
     get chess() { return chess; }, get G() { return G; }, get thinking() { return thinking; }, get flipped() { return flipped; },
     tap: name => onTap(C.sqIdx(name)), at: name => { const p = chess.board[C.sqIdx(name)]; return p ? LETTER[p & 7] + ((p >> 3) ? 'b' : 'w') : ''; },
     startGame, settings, startPuzzle, get stats() { return stats; }, mateMoves, PUZZLES, finish: st => finishGame(st)

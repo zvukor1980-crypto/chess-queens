@@ -1,0 +1,23 @@
+/* v3 «Королевский поход» */
+#v3floor{position:absolute;left:-6%;right:-6%;bottom:-14%;width:112%;height:75%;pointer-events:none;z-index:0;filter:drop-shadow(0 6px 14px rgba(90,40,160,.35))}
+.hero-piece{z-index:1}
+.btn.v3quest{display:flex;flex-direction:column;align-items:center;gap:1px;background:linear-gradient(180deg,#7ee8ff,#3aa8ff 50%,#2a6ae0);color:#fff;border:2px solid #e8f8ff;box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 -4px 0 #1a4ab0,0 5px 0 #143a8a,0 10px 24px rgba(60,140,255,.35);text-shadow:0 2px 0 rgba(10,40,120,.4);position:relative;overflow:hidden}
+.btn.v3quest small{font-size:12px;opacity:.95;font-weight:800}
+.btn.v3quest::after{content:"";position:absolute;top:0;bottom:0;width:30%;left:-40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.6),transparent);animation:v3shine 3.4s ease-in-out infinite}
+@keyframes v3shine{0%,60%{left:-40%}100%{left:130%}}
+.v3rules{font-size:12px;opacity:.8;margin:-4px 0 8px}
+.v3qlist{display:flex;flex-direction:column;gap:7px;max-height:52vh;overflow:auto;padding:2px 2px 6px}
+.v3q{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:16px;border:2px solid rgba(160,110,240,.35);background:linear-gradient(135deg,#fff,#f4ecff);color:#3a2466;font:inherit;cursor:pointer;box-shadow:0 3px 0 rgba(120,70,200,.18)}
+.v3q i{font-style:normal;font-size:26px;width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:12px;background:radial-gradient(circle at 35% 30%,#fff6d0,#ffd25e);box-shadow:inset 0 -3px 0 rgba(0,0,0,.08)}
+.v3q span{flex:1;min-width:0}.v3q b{display:block;font-size:14px}.v3q small{display:block;font-size:11px;opacity:.75;line-height:1.25}
+.v3q em{font-style:normal;color:#f5a400;font-size:14px;white-space:nowrap}.v3q em u{text-decoration:none;color:#d8cfe8}
+.v3q.lock{opacity:.6;filter:grayscale(.6)}
+.v3q.cur{border-color:#ffb43a;box-shadow:0 0 0 3px rgba(255,190,60,.35),0 3px 0 rgba(120,70,200,.18)}
+.v3stars{display:flex;justify-content:center;gap:6px;margin:4px 0}
+.v3stars i{font-style:normal;font-size:44px;color:#ddd3ee;transform:scale(0);animation:v3pop .5s cubic-bezier(.3,1.6,.5,1) forwards}
+.v3stars i.on{color:#ffc12e;text-shadow:0 3px 0 #c87a00,0 0 18px #ffd25e}
+.v3stars i:nth-child(2){font-size:54px;margin-top:-8px}
+@keyframes v3pop{to{transform:scale(1)}}
+/* роскошная рама доски */
+.board-wrap::before{content:"";position:absolute;inset:-9px;pointer-events:none;border-radius:20px;background:linear-gradient(135deg,#fff3b0,#e0a020 25%,#fff0a0 50%,#c88a10 75%,#ffe680);box-shadow:0 10px 26px rgba(90,40,160,.35),inset 0 0 0 2px rgba(255,255,255,.6);z-index:0}
+.board-wrap>#board{z-index:1}

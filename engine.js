@@ -136,8 +136,8 @@
     hint: { depth: 5, time: 1000, noise: 0 }
   };
 
-  function bestMove(moves, level) {
-    const c = new C();
+  function bestMove(moves, level, fen) {
+    const c = new C(); if (fen) c.load(fen);
     for (const u of moves) { const m = c.findUci(u); if (!m) break; c.play(m); }
     const opts = LEVELS[level] || LEVELS.medium;
     // работаем на копии, чтобы прерывание по времени не портило позицию

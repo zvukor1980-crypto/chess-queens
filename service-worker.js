@@ -1,7 +1,7 @@
 // Cache names include the worker scope so other games on the same origin stay intact.
 const PREFIX = 'cq-' + encodeURIComponent(self.registration.scope) + '-';
-const CACHE = PREFIX + 'v6-fairy';
-const ASSETS = ['./', './index.html', './style.css', './v2.css', './pieces.js', './chess.js', './engine.js', './engine-worker.js', './audio.js', './app.js',
+const CACHE = PREFIX + 'v7-quest';
+const ASSETS = ['./', './index.html', './style.css', './v2.css', './v3.css', './pieces.js', './chess.js', './engine.js', './engine-worker.js', './audio.js', './app.js',
   './manifest.webmanifest', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/favicon-32.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
