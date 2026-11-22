@@ -1,0 +1,74 @@
+name: Chess Queens Android APK + QA
+on:
+  push:
+    branches:
+      - fix/android-chess-qa-20261122
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout game
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Configure Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Verify chess rules (perft and regression cases)
+        run: |
+          node tools/verify-rules.cjs
+          node tools/qa-rules.cjs
+      - name: Inspect mobile UI and take real browser screenshot
+        run: |
+          npm install --no-save --no-audit --no-fund puppeteer-core@24
+          python3 -m http.server 6720 >/tmp/chess-queens-server.log 2>&1 &
+          sleep 2
+          CHROME_BIN="$(command -v google-chrome || command -v chromium)" node tools/mobile-qa.cjs
+      - name: Build offline Android APK
+        run: bash android/build-apk.sh
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChessQueens-Android-APK
+          path: build/ChessQueens-Android-debug.apk
+          if-no-files-found: error
+      - name: Enable emulator acceleration
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Launch Android app and capture actual emulator screenshot
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          script: |
+            adb install -r build/ChessQueens-Android-debug.apk
+            adb shell am start -n com.alexei.chessqueens/.MainActivity
+            sleep 18
+            adb exec-out screencap -p > shots/android-apk-emulator.png
+      - name: Upload original QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChessQueens-QA-Screenshots
+          path: |
+            shots/mobile-game-390x844.png
+            shots/android-apk-emulator.png
+          if-no-files-found: warn
