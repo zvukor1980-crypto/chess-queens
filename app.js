@@ -338,13 +338,16 @@
   function openMenu() {
     modal.dataset.dismiss = '';
     const canResign = G && !G.over && G.moves.length > 0;
+    const drawClaim = G && !G.over && (G.mode !== 'ai' || chess.turn === G.human) ? chess.status().claim : null;
     openModal(`<h2>Меню</h2><div class="menu-list">
       <button id="mResume">▶ Продолжить</button>
       <button id="mNew">♛ Новая игра</button>
       ${canResign ? '<button id="mResign" class="danger">🏳 Сдаться</button>' : ''}
+      ${drawClaim ? '<button id="mClaim">🤝 Заявить ничью (' + (drawClaim === 'repetition' ? 'повторение' : '50 ходов') + ')</button>' : ''}
       <button id="mSettings">⚙ Настройки</button>
       <button id="mHome">🏠 Главное меню</button></div>`);
     $('#mResume').onclick = closeModal;
+    if (drawClaim) $('#mClaim').onclick = () => { closeModal(); finishGame({ over: true, result: 'd', reason: drawClaim }); };
     $('#mNew').onclick = openNewGame;
     $('#mSettings').onclick = openSettings;
     $('#mHome').onclick = () => { closeModal(); cancelEngine(); saveGame(); showScreen('start'); };
@@ -765,14 +768,14 @@
   $('#btnFlip').onclick = () => { flipped = !flipped; renderAll(); saveGame(); A.play('select'); };
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
   document.addEventListener('gesturestart', e => e.preventDefault());
-  let lastTouch = 0;
-  document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouch < 320) e.preventDefault(); lastTouch = n; }, { passive: false });
+  // touch-action:manipulation already prevents double-tap zoom. Blocking
+  // rapid touchend globally also blocked valid quick chess moves on phones.
 
   applySettings(); refreshStart(); saveSettings();
   $('#btnPuzzle').onclick = () => { A.unlock(); startPuzzle(); };
   $('#btnHall').onclick = openHall; $('#btnQuest').onclick = () => { A.unlock(); openQuest(); };
   refreshHall(); fxInit(); refreshQuestBtn(); setTimeout(v3Floor, 60); addEventListener('resize', () => setTimeout(v3Floor, 60));
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('service-worker.js').catch(() => { });
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !new URLSearchParams(location.search).has('android')) navigator.serviceWorker.register('service-worker.js').catch(() => { });
 
   // хук для автотестов
   window.__cq = { QUESTS, quest, startQuest, openQuest,
