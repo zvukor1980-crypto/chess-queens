@@ -41,6 +41,12 @@ public class MainActivity extends Activity {
                 WebView view, WebResourceRequest request) {
                 return loader.shouldInterceptRequest(request.getUrl());
             }
+            @Override public void onPageFinished(WebView view, String url) {
+                // QA-only intent launches the installed app directly on its board.
+                if (getIntent().getBooleanExtra("qa_board", false)) {
+                    view.evaluateJavascript("window.__cq && window.__cq.startGame({mode:'pvp',color:'w',level:'easy',timer:0})", null);
+                }
+            }
             @Override public boolean shouldOverrideUrlLoading(
                 WebView view, WebResourceRequest request) {
                 // Do not navigate from the game to arbitrary external websites.
