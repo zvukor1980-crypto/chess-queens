@@ -78,6 +78,8 @@
     pseudo(capturesOnly = false) {
       const b = this.board, us = this.turn, them = us ^ 1, out = [];
       const add = (from, to, piece, flags, captured) => {
+        // The king can never be captured: the game ends at checkmate.
+        if (captured && (captured & 7) === K) return;
         if ((piece & 7) === P && ((to >> 3) === 0 || (to >> 3) === 7)) {
           for (const pr of [Q, R, B, N]) out.push({ from, to, piece, captured, promo: pr, flags });
         } else out.push({ from, to, piece, captured, promo: 0, flags });
@@ -176,10 +178,18 @@
     }
     legalFrom(sq) { return this.legal().filter(m => m.from === sq); }
     key() {
+      // FIDE repetition equivalence: en passant changes the key only if
+      // a LEGAL en-passant capture is available (not merely a pseudo-legal one).
       let ep = -1;
       if (this.ep >= 0) {
-        const pawn = this.turn * 8 + P, f = this.ep & 7, src = this.turn === 0 ? this.ep + 8 : this.ep - 8;
-        if ((f > 0 && this.board[src - 1] === pawn) || (f < 7 && this.board[src + 1] === pawn)) ep = this.ep;
+        const target = this.ep, us = this.turn;
+        for (const move of this.pseudo(true)) {
+          if (!(move.flags & F_EP)) continue;
+          this.make(move);
+          const isLegal = !this.inCheck(us);
+          this.unmake(move);
+          if (isLegal) { ep = target; break; }
+        }
       }
       return this.board.join(',') + '|' + this.turn + this.castle + '|' + ep;
     }
@@ -251,17 +261,24 @@
         if (t === P || t === R || t === Q) return true;
         if (t === N) n++; if (t === B) b++;
       }
-      return n + b >= 2;
+      // A lone bishop/knight can theoretically mate with assistance from an
+      // opponent's piece blocking escape squares, but not against a bare king.
+      if (n + b >= 2) return true;
+      if (n + b === 0) return false;
+      return this.board.some(p => p && (p >> 3) !== side && (p & 7) !== K);
     }
     status() {
       const legal = this.legal();
       if (!legal.length) return this.inCheck() ? { over: true, result: this.turn === 0 ? 'b' : 'w', reason: 'mate' } : { over: true, result: 'd', reason: 'stalemate' };
       if (this.insufficient()) return { over: true, result: 'd', reason: 'material' };
-      if (this.half >= 100) return { over: true, result: 'd', reason: 'fifty' };
+      // Threefold repetition / 50-move rule are claimable; fivefold / 75
+      // moves are automatic draws. Checkmate above takes precedence.
       const k = this.keys[this.keys.length - 1];
       let cnt = 0; for (const x of this.keys) if (x === k) cnt++;
-      if (cnt >= 3) return { over: true, result: 'd', reason: 'repetition' };
-      return { over: false, check: this.inCheck() };
+      if (this.half >= 150) return { over: true, result: 'd', reason: 'seventyfive' };
+      if (cnt >= 5) return { over: true, result: 'd', reason: 'fivefold' };
+      const claim = cnt >= 3 ? 'repetition' : this.half >= 100 ? 'fifty' : null;
+      return { over: false, check: this.inCheck(), claim };
     }
     load(fen) {
       const [pl, t, cs, ep, h, f] = fen.trim().split(/\s+/);
